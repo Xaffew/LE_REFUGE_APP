@@ -1,0 +1,372 @@
+<!-- Début du code de l'outil LE REFUGE -->
+<div id="le-refuge-app-wrapper" class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    
+    <div id="le-refuge-app-container" class="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
+        
+        <header class="text-center">
+            <h1 class="text-3xl font-bold text-gray-800">Outil d'Analyse de LE REFUGE</h1>
+            <p class="text-gray-500 mt-1">Votre avantage sur le marché.</p>
+        </header>
+
+        <div class="border-b border-gray-200">
+            <nav class="flex -mb-px" aria-label="Tabs">
+                <button id="tab-calculator" class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm tab-active" onclick="switchTab('calculator')">Calculateur d'Options</button>
+                <button id="tab-comparator" class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm tab-inactive" onclick="switchTab('comparator')">Comparateur d'Actions</button>
+            </nav>
+        </div>
+
+        <main id="content-calculator" class="space-y-6">
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <!-- Left Side: Inputs -->
+                    <div class="space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-700">Détails de la Transaction</h2>
+                        <div>
+                            <label for="stock-ticker" class="block text-sm font-medium text-gray-700">Symbole (Ticker)</label>
+                            <input type="text" id="stock-ticker" class="mt-1 block w-full rounded-md" placeholder="ex: AAPL" oninput="updateCostDisplay()">
+                        </div>
+                        <div>
+                            <label for="strategy" class="block text-sm font-medium text-gray-700">Stratégie</label>
+                            <select id="strategy" onchange="toggleStrategyInputs()" class="mt-1 block w-full rounded-md">
+                                <option value="buy_call">Achat (Buy Call)</option>
+                                <option value="buy_put">Achat (Buy Put)</option>
+                                <option value="csp">Vente (Sell CSP)</option>
+                                <option value="cc">Vente (Sell Covered Call)</option>
+                            </select>
+                        </div>
+                         <div id="cost-basis-input-container" class="hidden">
+                            <label for="cost-basis" class="block text-sm font-medium text-gray-700">Cost Basis (prix d'achat des actions)</label>
+                            <input type="number" id="cost-basis" class="mt-1 block w-full rounded-md" placeholder="165.50">
+                        </div>
+                    </div>
+                     <!-- Right Side: Inputs -->
+                    <div class="space-y-4">
+                         <h2 class="text-xl font-semibold text-gray-700 invisible">Détails de la Transaction</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="strike-price" class="block text-sm font-medium text-gray-700">Strike Price</label>
+                                <input type="number" id="strike-price" class="mt-1 block w-full rounded-md" placeholder="150" oninput="updateCostDisplay()">
+                            </div>
+                            <div>
+                                <label for="expiration-date" class="block text-sm font-medium text-gray-700">Date d'Échéance</label>
+                                <input type="date" id="expiration-date" class="mt-1 block w-full rounded-md">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="premium" class="block text-sm font-medium text-gray-700">Premium</label>
+                                <input type="number" id="premium" class="mt-1 block w-full rounded-md" placeholder="2.50" oninput="updateCostDisplay()">
+                            </div>
+                            <div>
+                                <label for="contracts" class="block text-sm font-medium text-gray-700">Contrats</label>
+                                <input type="number" id="contracts" class="mt-1 block w-full rounded-md" value="1" min="1" oninput="updateCostDisplay()">
+                            </div>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-lg text-center">
+                            <span class="text-sm font-medium">Coût/Crédit Total :</span>
+                            <span id="total-cost" class="text-lg font-bold ml-2">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                 <div class="mt-6">
+                    <button id="calculate-btn" onclick="calculateStrategy()" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 text-lg">
+                        Analyser la Transaction
+                    </button>
+                </div>
+                <!-- Results Area -->
+                <div id="results-area" class="mt-6 space-y-6 hidden">
+                    <div id="pnl-graph-container"><canvas id="pnl-chart"></canvas></div>
+                    <div id="pnl-table-container"></div>
+                     <!-- Advanced Section -->
+                    <details id="advanced-section" class="bg-gray-100 rounded-lg p-4">
+                        <summary class="font-semibold text-gray-700 cursor-pointer flex justify-between items-center">
+                            <span>Analyse Avancée (Greeks)</span>
+                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                         <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4" id="greeks-display"></div>
+                         <div class="mt-4 border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                            <div>
+                                <label for="iv-override" class="block text-sm font-medium text-gray-700">Implied Volatility (%)</label>
+                                <input type="number" id="iv-override" class="mt-1 block w-full rounded-md" placeholder="ex: 25.5">
+                                <p class="text-xs text-gray-500 mt-1">Affecte les Grecques et courbes théoriques.</p>
+                            </div>
+                             <div id="today-pnl-container">
+                                <label for="add-today-curve-btn" class="block text-sm font-medium text-gray-700">Comparer avec le P&amp;L théorique :</label>
+                                 <div class="flex gap-2 mt-1">
+                                    <button id="add-today-curve-btn" onclick="addTodayCurve()" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 text-sm w-full">Afficher "Today's P&amp;L"</button>
+                                 </div>
+                             </div>
+                        </div>
+                    </details>
+                </div>
+                <div id="calculator-prompt" class="mt-6 flex items-center justify-center h-48 bg-white rounded-lg shadow"><p class="text-gray-500 text-center">Entrez les détails pour voir l'analyse.</p></div>
+            </div>
+        </main>
+
+        <main id="content-comparator" class="hidden space-y-6">
+             <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold text-gray-700">Stock Comparator</h2>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label for="ticker-input-single" class="block text-sm font-medium text-gray-700">Ajouter des Actions (max 4)</label>
+                        <div id="ticker-tags-container" class="flex flex-wrap gap-2 my-2 min-h-[38px]"></div>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="ticker-input-single" class="block w-full rounded-md" placeholder="Entrez le symbole...">
+                            <button id="add-ticker-btn" onclick="addTicker()" class="bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition duration-150">Ajouter</button>
+                        </div>
+                    </div>
+                     <button id="compare-btn" onclick="compareStocks()" class="w-full bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                        Comparer les Actions
+                    </button>
+                    <div id="comparator-results-container" class="mt-6 hidden"></div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center text-xs text-gray-400 pt-4 mt-6">
+            <p>© 2024 LE REFUGE | Outil Éducatif. Pas un Conseil Financier.</p>
+            <p class="mt-1">Données fournies par <a href="https://financialmodelingprep.com/developer/docs/" target="_blank" class="text-blue-500 hover:underline">FinancialModelingPrep</a>.</p>
+        </footer>
+    </div>
+</div>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+<style>
+    #le-refuge-app-container .tab-active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 600; }
+    #le-refuge-app-container .tab-inactive { border-bottom-color: transparent; color: #6b7280; }
+    #le-refuge-app-container .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #le-refuge-app-container button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #le-refuge-app-container .best-value { background-color: #dcfce7; color: #166534; font-weight: 600; }
+    #le-refuge-app-container input, #le-refuge-app-container select { border-width: 1px; border-color: rgb(209 213 219); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+    #le-refuge-app-container details > summary { list-style: none; }
+    #le-refuge-app-container details > summary::-webkit-details-marker { display: none; }
+    #le-refuge-app-container details[open] summary svg { transform: rotate(180deg); }
+</style>
+
+<script>
+    // --- START OF BLACK-SCHOLES & VOLATILITY IMPLEMENTATION ---
+    function cdf(x) { const p = 0.2316419, b1 = 0.319381530, b2 = -0.356563782, b3 = 1.781477937, b4 = -1.821255978, b5 = 1.330274429; const t = 1 / (1 + p * Math.abs(x)); const z = Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI); const val = (b1 * t + b2 * t**2 + b3 * t**3 + b4 * t**4 + b5 * t**5) * z; return x > 0 ? 1 - val : val; }
+    function nPrime(x) { return Math.exp(-0.5 * x * x) / (Math.sqrt(2 * Math.PI)); }
+
+    function blackScholes(S, K, T, r, v) {
+        if (T <= 0) T = 0.00001;
+        const d1 = (Math.log(S / K) + (r + v * v / 2) * T) / (v * Math.sqrt(T));
+        const d2 = d1 - v * Math.sqrt(T);
+        const callPrice = S * cdf(d1) - K * Math.exp(-r * T) * cdf(d2);
+        const putPrice = K * Math.exp(-r * T) * cdf(-d2) - S * cdf(-d1);
+        const deltaCall = cdf(d1);
+        const deltaPut = deltaCall - 1;
+        const gamma = nPrime(d1) / (S * v * Math.sqrt(T));
+        const vega = S * nPrime(d1) * Math.sqrt(T) / 100;
+        const thetaCall = (-(S * nPrime(d1) * v) / (2 * Math.sqrt(T)) - r * K * Math.exp(-r * T) * cdf(d2)) / 365;
+        const thetaPut = (-(S * nPrime(d1) * v) / (2 * Math.sqrt(T)) + r * K * Math.exp(-r * T) * cdf(-d2)) / 365;
+        return { call: { price: callPrice, delta: deltaCall, theta: thetaCall }, put: { price: putPrice, delta: deltaPut, theta: thetaPut }, gamma, vega };
+    }
+
+    function calculateHistoricalVolatility(historicalData) { if (!historicalData || historicalData.length < 2) return 0.30; const logReturns = []; for (let i = 1; i < historicalData.length; i++) { logReturns.push(Math.log(historicalData[i].close / historicalData[i-1].close)); } const mean = logReturns.reduce((a, b) => a + b, 0) / logReturns.length; const variance = logReturns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (logReturns.length - 1); return Math.sqrt(variance) * Math.sqrt(252); }
+    // --- END OF IMPLEMENTATION ---
+
+    const apiKey = 'XteJZBQCVcklRR6URlDDqEVZO8t6Coks';
+    const FMP_BASE_URL = 'https://financialmodelingprep.com/api/v3';
+    let pnlChartInstance = null;
+    const RISK_FREE_RATE = 0.045;
+    let currentAnalysisParams = {};
+    let comparisonTickers = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 30);
+        document.getElementById('expiration-date').value = futureDate.toISOString().split('T')[0];
+        document.getElementById('ticker-input-single').addEventListener('keyup', (event) => { if (event.key === 'Enter') addTicker(); });
+        document.getElementById('iv-override').addEventListener('input', () => calculateStrategy(true));
+        toggleStrategyInputs();
+        updateCostDisplay();
+    });
+    
+    function toggleStrategyInputs() {
+        const strategy = document.getElementById('strategy').value;
+        const todayPnlContainer = document.getElementById('today-pnl-container');
+        const costBasisContainer = document.getElementById('cost-basis-input-container');
+
+        costBasisContainer.classList.toggle('hidden', strategy !== 'cc');
+        todayPnlContainer.style.display = (strategy === 'buy_call' || strategy === 'buy_put') ? 'block' : 'none';
+        
+        updateCostDisplay();
+    }
+    
+    function updateCostDisplay() { const premium = parseFloat(document.getElementById('premium').value) || 0; const quantity = parseInt(document.getElementById('contracts').value) || 0; const strategy = document.getElementById('strategy').value; const cost = premium * 100 * quantity; const isCredit = strategy.startsWith('sell') || strategy === 'csp' || strategy === 'cc'; document.getElementById('total-cost').textContent = `${isCredit ? '+' : ''}$${cost.toFixed(2)}`; document.getElementById('total-cost').style.color = isCredit ? '#16a34a' : '#dc2626'; }
+    
+    function getSmartPriceRange(currentPrice, strike) {
+        const padding = Math.max(Math.abs(currentPrice - strike) * 0.5, currentPrice * 0.3);
+        const lowerBound = Math.max(0.01, Math.min(currentPrice, strike) - padding);
+        const upperBound = Math.max(currentPrice, strike) + padding;
+        
+        let points = new Set();
+        for (let i = 0; i <= 10; i++) {
+            points.add(lowerBound + i * (upperBound - lowerBound) / 10);
+        }
+        points.add(currentPrice);
+        points.add(strike);
+        
+        return Array.from(points).sort((a, b) => a - b);
+    }
+
+    async function calculateStrategy(isRerun = false) {
+        const calcButton = document.getElementById('calculate-btn');
+        if(!isRerun) {
+            calcButton.disabled = true;
+            calcButton.innerHTML = `<div class="loader mx-auto"></div>`;
+        }
+
+        const ticker = document.getElementById('stock-ticker').value.toUpperCase();
+        const strategy = document.getElementById('strategy').value;
+        const strike = parseFloat(document.getElementById('strike-price').value);
+        const premium = parseFloat(document.getElementById('premium').value);
+        const quantity = parseInt(document.getElementById('contracts').value) || 1;
+        const expDate = new Date(document.getElementById('expiration-date').value + "T00:00:00");
+        const costBasisInput = parseFloat(document.getElementById('cost-basis').value);
+        const today = new Date();
+        const timeToExpiration = (expDate.getTime() - today.getTime()) / (1000 * 3600 * 24 * 365);
+        const ivOverride = parseFloat(document.getElementById('iv-override').value);
+        
+        if (!ticker || isNaN(strike) || isNaN(premium) || timeToExpiration <= 0 || (strategy === 'cc' && isNaN(costBasisInput))) {
+            if(!isRerun) alert("Veuillez remplir tous les champs requis avec des valeurs valides.");
+            calcButton.disabled = false;
+            calcButton.textContent = 'Analyser la Transaction';
+            return;
+        }
+
+        try {
+            if (!isRerun || !currentAnalysisParams.currentStockPrice) {
+                const [quoteResponse, historyResponse] = await Promise.all([fetch(`${FMP_BASE_URL}/quote/${ticker}?apikey=${apiKey}`), fetch(`${FMP_BASE_URL}/historical-price-full/${ticker}?timeseries=35&apikey=${apiKey}`)]);
+                const quoteData = await quoteResponse.json();
+                const historyData = await historyResponse.json();
+                if (!quoteData || quoteData.length === 0) throw new Error(`Impossible de trouver les données pour: ${ticker}`);
+                
+                currentAnalysisParams.currentStockPrice = quoteData[0].price;
+                currentAnalysisParams.calculatedHv = calculateHistoricalVolatility(historyData.historical);
+            }
+            
+            document.getElementById('calculator-prompt').classList.add('hidden');
+            document.getElementById('results-area').classList.remove('hidden');
+
+            const costBasis = (strategy === 'cc') ? costBasisInput : 0;
+            currentAnalysisParams = { ...currentAnalysisParams, strategy, strike, premium, quantity, costBasis, interest: RISK_FREE_RATE, timeToExpiration, expDate };
+            currentAnalysisParams.iv = isNaN(ivOverride) ? currentAnalysisParams.calculatedHv : ivOverride / 100;
+            if (isNaN(ivOverride)) { document.getElementById('iv-override').placeholder = (currentAnalysisParams.calculatedHv * 100).toFixed(2); }
+            
+            renderPnLChart([
+                { label: 'P&L at Expiration', dte: 0.0001, color: 'dynamic', width: 3, dash: [] }
+            ]);
+            renderExpirationPnLTable();
+            displayGreeks();
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            calcButton.disabled = false;
+            calcButton.textContent = 'Analyser la Transaction';
+        }
+    }
+    
+    function renderPnLChart(curves) {
+        if (pnlChartInstance) pnlChartInstance.destroy();
+        const { strategy, strike, premium, quantity, iv, interest, currentStockPrice, costBasis } = currentAnalysisParams;
+        const priceRange = getSmartPriceRange(currentStockPrice, strike);
+        const optionType = strategy.includes('call') || strategy === 'csp' ? 'call' : 'put';
+        
+        const datasets = curves.map(curve => {
+            const pnlData = priceRange.map(price => {
+                let pnlPerShare;
+                if (curve.label.includes('Expiration')) {
+                     switch(strategy) {
+                        case 'buy_call': pnlPerShare = Math.max(0, price - strike) - premium; break;
+                        case 'buy_put': pnlPerShare = Math.max(0, strike - price) - premium; break;
+                        case 'csp': pnlPerShare = premium - Math.max(0, strike - price); break;
+                        case 'cc': pnlPerShare = (price - costBasis) + premium - Math.max(0, price - strike); break;
+                    }
+                } else { // "Today's P&L" logic
+                    const currentTheo = blackScholes(price, strike, curve.dte, interest, iv)[optionType].price;
+                    const entryTheo = blackScholes(currentStockPrice, strike, curve.dte, interest, iv)[optionType].price;
+                    pnlPerShare = currentTheo - entryTheo;
+                }
+                return { x: price, y: pnlPerShare * 100 * quantity };
+            });
+
+            const dataset = { label: curve.label, data: pnlData, borderColor: curve.color, borderWidth: curve.width, borderDash: curve.dash, tension: curve.label.includes('Expiration') ? 0 : 0.2, pointRadius: 0 };
+            if(curve.color === 'dynamic'){ dataset.segment = { borderColor: ctx => (ctx.p1.parsed.y < 0 ? 'rgb(239, 68, 68)' : 'rgb(34, 197, 94)') }; }
+            return dataset;
+        });
+
+        const ctx = document.getElementById('pnl-chart').getContext('2d');
+        pnlChartInstance = new Chart(ctx, { type: 'line', data: { datasets }, options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: `Payoff Diagram`, font: { size: 16 } }, legend: { position: 'top' }, tooltip: { callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(context.parsed.y); } return label; } } }, annotation: { annotations: { zeroLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(0,0,0,0.5)', borderWidth: 1 } } } }, scales: { y: { title: { display: true, text: 'Profit / Loss ($)' } }, x: { type: 'linear', title: { display: true, text: 'Stock Price ($)' }, ticks: { callback: function(value, index, ticks) { return '$' + Number(value).toFixed(2); }, maxRotation: 45, minRotation: 0 } } } } });
+    }
+    
+    function addTodayCurve() {
+        const { timeToExpiration } = currentAnalysisParams;
+        renderPnLChart([
+            { label: "Today's P&L (Théorique)", dte: timeToExpiration, color: 'rgb(59, 130, 246)', width: 3, dash: [] },
+            { label: 'P&L at Expiration', dte: 0.0001, color: 'dynamic', width: 2, dash: [5, 5] }
+        ]);
+    }
+
+    function renderExpirationPnLTable() {
+        const { strategy, strike, premium, quantity, currentStockPrice, costBasis } = currentAnalysisParams;
+        const container = document.getElementById('pnl-table-container');
+        const pricePoints = getSmartPriceRange(currentStockPrice, strike);
+        
+        let tableHTML = `<h3 class="text-xl font-semibold text-gray-700 mb-2">Profit/Perte à l'Échéance</h3><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prix</th><th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">P&L</th></tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+
+        pricePoints.forEach(price => {
+            const isCurrentRow = Math.abs(price - currentStockPrice) < 0.01;
+            let pnlPerShare;
+            switch(strategy) {
+                case 'buy_call': pnlPerShare = Math.max(0, price - strike) - premium; break;
+                case 'buy_put': pnlPerShare = Math.max(0, strike - price) - premium; break;
+                case 'csp': pnlPerShare = premium - Math.max(0, strike - price); break;
+                case 'cc': pnlPerShare = (price - costBasis) + premium - Math.max(0, price - strike); break;
+            }
+            const totalPnl = pnlPerShare * 100 * quantity;
+            const pnlColor = totalPnl >= 0 ? 'text-green-600' : 'text-red-600';
+
+            tableHTML += `<tr class="${isCurrentRow ? 'bg-blue-50 font-semibold' : ''}"><td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">$${price.toFixed(2)}</td><td class="px-4 py-2 whitespace-nowrap text-sm text-center ${pnlColor}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</td></tr>`;
+        });
+        tableHTML += `</tbody></table></div>`;
+        container.innerHTML = tableHTML;
+    }
+    
+    function displayGreeks(){
+        const { strategy, strike, iv, interest, timeToExpiration, currentStockPrice } = currentAnalysisParams;
+        const greeksContainer = document.getElementById('greeks-display');
+        const bs = blackScholes(currentStockPrice, strike, timeToExpiration, interest, iv);
+        const optionType = strategy.includes('call') || strategy === 'csp' ? 'call' : 'put';
+        const sign = (strategy.startsWith('sell') || strategy === 'csp' || strategy === 'cc') ? -1 : 1;
+        const greeks = { Delta: (bs[optionType].delta * sign).toFixed(3), Gamma: (bs.gamma).toFixed(3), Theta: (bs[optionType].theta * sign).toFixed(3), Vega: (bs.vega).toFixed(3) };
+        greeksContainer.innerHTML = '';
+        for (const [key, value] of Object.entries(greeks)) {
+            greeksContainer.innerHTML += `<div class="bg-gray-100 p-2 rounded"><p class="text-sm text-gray-500">${key}</p><p class="font-bold text-gray-800">${value}</p></div>`;
+        }
+    }
+
+    // --- Stock Comparator Functions ---
+    function switchTab(tabName) {
+        document.getElementById('content-calculator').style.display = 'none';
+        document.getElementById('content-comparator').style.display = 'none';
+        document.getElementById(`content-${tabName}`).style.display = 'block';
+
+        document.querySelectorAll('#le-refuge-app-container nav button').forEach(btn => {
+            const isTarget = btn.id === `tab-${tabName}`;
+            btn.classList.toggle('tab-active', isTarget);
+            btn.classList.toggle('tab-inactive', !isTarget);
+        });
+    }
+
+    function addTicker() { const inputEl = document.getElementById('ticker-input-single'); const ticker = inputEl.value.trim().toUpperCase(); if (ticker && !comparisonTickers.includes(ticker) && comparisonTickers.length < 4) { comparisonTickers.push(ticker); renderTickerTags(); } else if (comparisonTickers.length >= 4) { alert("You can compare a maximum of 4 tickers."); } inputEl.value = ''; inputEl.focus(); }
+    function removeTicker(tickerToRemove) { comparisonTickers = comparisonTickers.filter(t => t !== tickerToRemove); renderTickerTags(); }
+    function renderTickerTags() { const container = document.getElementById('ticker-tags-container'); container.innerHTML = ''; comparisonTickers.forEach(ticker => { const tag = document.createElement('div'); tag.className = 'flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-1 rounded-full'; tag.innerHTML = `<span>${ticker}</span><button onclick="removeTicker('${ticker}')" class="ml-2 text-blue-500 hover:text-blue-700 focus:outline-none">&times;</button>`; container.appendChild(tag); }); document.getElementById('ticker-input-single').disabled = comparisonTickers.length >= 4; document.getElementById('add-ticker-btn').disabled = comparisonTickers.length >= 4; }
+    async function compareStocks() { if (comparisonTickers.length === 0) { alert("Veuillez ajouter au moins un symbole d'action."); return; } const compareButton = document.getElementById('compare-btn'); compareButton.disabled = true; const container = document.getElementById('comparator-results-container'); container.classList.remove('hidden'); container.innerHTML = `<div class="flex justify-center items-center p-8"><div class="loader"></div></div>`; try { const apiPromises = comparisonTickers.map(ticker => { const quoteUrl = `${FMP_BASE_URL}/quote/${ticker}?apikey=${apiKey}`; const ratiosUrl = `${FMP_BASE_URL}/ratios-ttm/${ticker}?apikey=${apiKey}`; return Promise.all([fetch(quoteUrl).then(res => res.json()), fetch(ratiosUrl).then(res => res.json())]); }); const results = await Promise.all(apiPromises); const processedData = results.map((res, index) => { const quoteData = res[0] && res[0][0]; const ratioData = res[1] && res[1][0]; if (!quoteData || !ratioData) return { ticker: comparisonTickers[index], data: null }; return { ticker: comparisonTickers[index], data: { price: quoteData.price, peRatio: ratioData.peRatioTTM, psRatio: ratioData.priceToSalesRatioTTM, pbRatio: ratioData.priceToBookRatioTTM, grossProfitMargin: ratioData.grossProfitMarginTTM } }; }); renderComparisonTable(processedData); } catch (error) { container.innerHTML = `<p class="text-red-500 text-center">Une erreur est survenue.</p>`; } finally { compareButton.disabled = false; } }
+    function renderComparisonTable(results) { const container = document.getElementById('comparator-results-container'); const metrics = [ { key: 'price', label: 'Current Price', format: (v) => v ? `$${v.toFixed(2)}` : 'N/A', highlight: false }, { key: 'peRatio', label: 'P/E Ratio', format: (v) => v ? v.toFixed(2) : 'N/A', highlight: true }, { key: 'psRatio', label: 'P/S Ratio', format: (v) => v ? v.toFixed(2) : 'N/A', highlight: true }, { key: 'pbRatio', label: 'P/B Ratio', format: (v) => v ? v.toFixed(2) : 'N/A', highlight: true }, { key: 'grossProfitMargin', label: 'Gross Margin', format: (v) => v ? `${(v * 100).toFixed(2)}%` : 'N/A', highlight: false } ]; const minValues = {}; metrics.forEach(metric => { if (!metric.highlight) return; const validValues = results.map(r => r.data ? r.data[metric.key] : null).filter(v => v !== null && v > 0); if (validValues.length > 0) minValues[metric.key] = Math.min(...validValues); }); let tableHTML = `<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-100"><tr><th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">Metric</th>${results.map(r => `<th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">${r.ticker}</th>`).join('')}</tr></thead><tbody class="bg-white divide-y divide-gray-200">`; metrics.forEach(metric => { tableHTML += `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">${metric.label}</td>`; results.forEach(r => { const value = r.data ? r.data[metric.key] : null; const isBest = metric.highlight && value !== null && value === minValues[metric.key]; tableHTML += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center ${isBest ? 'best-value' : ''}">${value !== null ? metric.format(value) : 'N/A'}</td>`; }); tableHTML += `</tr>`; }); tableHTML += `</tbody></table></div>`; container.innerHTML = tableHTML; }
+</script>
+
